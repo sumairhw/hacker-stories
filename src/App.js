@@ -1,24 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-const List = ({ list }) => {
+const List = ({ list, onRemoveItem }) => {
   console.log("list renders", list);
   return (
     <ul>
       {list.map((item) => (
-        <Item key={item.objectID} {...item} />
+        <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
       ))}
     </ul>
   );
 };
 
-const Item = ({ title, url, author, num_comments, points }) => (
+const Item = ({ item, onRemoveItem }) => (
   <li>
     <span>
-      <a href={url}>{title}</a>
+      <a href={item.url}>{item.title}</a>
     </span>
-    <span>{author}</span>
-    <span>{num_comments}</span>
-    <span>{points}</span>
+    <span>{item.author}</span>
+    <span>{item.num_comments}</span>
+    <span>{item.points}</span>
+    <span>
+      <button onClick={() => onRemoveItem(item)}>Dismiss</button>
+    </span>
   </li>
 );
 
@@ -32,16 +35,37 @@ const useSemiPersistentState = (key, initialState) => {
   return [value, setValue];
 };
 
-const InputWithLabel = ({ id, label, value, onChange }) => (
-  <>
-    <label htmlFor={id}>{label}</label>
-    <input id={id} type="text" value={value} onChange={onChange} />
-  </>
-);
+const InputWithLabel = ({
+  id,
+  value,
+  onChange,
+  isFocused,
+  type = "text",
+  children,
+}) => {
+  const inputRef = useRef();
+  useEffect(() => {
+    if (isFocused && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused]);
+  return (
+    <>
+      <label htmlFor={id}>{children}</label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        ref={inputRef}
+      />
+    </>
+  );
+};
 
 const App = () => {
   console.log("app renders");
-  const stories = [
+  const initialStories = [
     {
       title: "React",
       url: "https://reactjs.org/",
@@ -60,10 +84,18 @@ const App = () => {
     },
   ];
 
+  const [stories, setStories] = useState(initialStories);
+
   const [searchTerm, setSearchTerm] = useSemiPersistentState("search", "React");
 
   const handleChange = (event) => {
     setSearchTerm(event.target.value);
+  };
+  const handleRemoveStory = (item) => {
+    const newStories = stories.filter(
+      (story) => story.objectID !== item.objectID
+    );
+    setStories(newStories);
   };
 
   const searchedStories = stories.filter((story) =>
@@ -77,10 +109,13 @@ const App = () => {
         id="search"
         label="Search"
         value={searchTerm}
+        isFocused={true}
         onChange={handleChange}
-      />
+      >
+        <strong>Search : </strong>
+      </InputWithLabel>
       <hr />
-      <List list={searchedStories} />
+      <List list={searchedStories} onRemoveItem={handleRemoveStory} />
     </div>
   );
 };
