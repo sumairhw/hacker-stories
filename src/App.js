@@ -1,17 +1,17 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 
-const Search = ({ onChange, searchTerm }) => {
+const Search = ({onChange, searchTerm}) => {
   console.log("search renders");
 
   return (
     <div>
       <label htmlFor="search">Search : </label>
-      <input id="search" type="text" onChange={onChange} value={searchTerm} />
+      <input id="search" type="text" onChange={onChange} value={searchTerm}/>
     </div>
   );
 };
 
-const List = ({ list }) => {
+const List = ({list}) => {
   console.log("list renders", list);
   return (
     <ul>
@@ -22,7 +22,7 @@ const List = ({ list }) => {
   );
 };
 
-const Item = ({ title, url, author, num_comments, points }) => (
+const Item = ({title, url, author, num_comments, points}) => (
   <li>
     <span>
       <a href={url}>{title}</a>
@@ -54,7 +54,14 @@ const App = () => {
     },
   ];
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(
+    localStorage.getItem("search") || "React"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("search", searchTerm);
+  }, [searchTerm]);
+
   const handleChange = (event) => {
     setSearchTerm(event.target.value);
   };
@@ -66,9 +73,9 @@ const App = () => {
   return (
     <div>
       <h1>My Hacker Stories</h1>
-      <Search onChange={handleChange} />
-      <hr />
-      <List list={searchedStories} searchTerm={searchTerm} />
+      <Search onChange={handleChange} searchTerm={searchTerm}/>
+      <hr/>
+      <List list={searchedStories}/>
     </div>
   );
 };
