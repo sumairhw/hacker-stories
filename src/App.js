@@ -1,17 +1,6 @@
-import React, {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 
-const Search = ({onChange, searchTerm}) => {
-  console.log("search renders");
-
-  return (
-    <div>
-      <label htmlFor="search">Search : </label>
-      <input id="search" type="text" onChange={onChange} value={searchTerm}/>
-    </div>
-  );
-};
-
-const List = ({list}) => {
+const List = ({ list }) => {
   console.log("list renders", list);
   return (
     <ul>
@@ -22,7 +11,7 @@ const List = ({list}) => {
   );
 };
 
-const Item = ({title, url, author, num_comments, points}) => (
+const Item = ({ title, url, author, num_comments, points }) => (
   <li>
     <span>
       <a href={url}>{title}</a>
@@ -31,6 +20,23 @@ const Item = ({title, url, author, num_comments, points}) => (
     <span>{num_comments}</span>
     <span>{points}</span>
   </li>
+);
+
+const useSemiPersistentState = (key, initialState) => {
+  const [value, setValue] = useState(localStorage.getItem(key) || initialState);
+
+  useEffect(() => {
+    localStorage.setItem(key, value);
+  }, [value, key]);
+
+  return [value, setValue];
+};
+
+const InputWithLabel = ({ id, label, value, onChange }) => (
+  <>
+    <label htmlFor={id}>{label}</label>
+    <input id={id} type="text" value={value} onChange={onChange} />
+  </>
 );
 
 const App = () => {
@@ -54,13 +60,7 @@ const App = () => {
     },
   ];
 
-  const [searchTerm, setSearchTerm] = useState(
-    localStorage.getItem("search") || "React"
-  );
-
-  useEffect(() => {
-    localStorage.setItem("search", searchTerm);
-  }, [searchTerm]);
+  const [searchTerm, setSearchTerm] = useSemiPersistentState("search", "React");
 
   const handleChange = (event) => {
     setSearchTerm(event.target.value);
@@ -73,9 +73,14 @@ const App = () => {
   return (
     <div>
       <h1>My Hacker Stories</h1>
-      <Search onChange={handleChange} searchTerm={searchTerm}/>
-      <hr/>
-      <List list={searchedStories}/>
+      <InputWithLabel
+        id="search"
+        label="Search"
+        value={searchTerm}
+        onChange={handleChange}
+      />
+      <hr />
+      <List list={searchedStories} />
     </div>
   );
 };
