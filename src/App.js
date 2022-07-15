@@ -1,116 +1,98 @@
-import React, { useEffect, useRef, useState } from "react";
-
-const initialStories = [
-  {
-    title: "React",
-    url: "https://reactjs.org/",
-    author: "Jordan Walke",
-    num_comments: 3,
-    points: 4,
-    objectID: 0,
-  },
-  {
-    title: "Redux",
-    url: "https://redux.js.org/",
-    author: "Dan Abramov, Andrew Clark",
-    num_comments: 2,
-    points: 5,
-    objectID: 1,
-  },
-];
-
-const getAsyncStories = () =>
-  new Promise((resolve) =>
-    setTimeout(() => resolve({ data: { stories: initialStories } }), 2000)
-  );
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import axios from 'axios'
 
 const useSemiPersistentState = (key, initialState) => {
-  const [value, setValue] = useState(localStorage.getItem(key) || initialState);
-
+  const [value, setValue] = useState(localStorage.getItem(key) || initialState)
   useEffect(() => {
-    localStorage.setItem(key, value);
-  }, [value, key]);
+    localStorage.setItem(key, value)
+  }, [value, key])
 
-  return [value, setValue];
-};
+  return [value, setValue]
+}
 const storiesReducer = (state, action) => {
   switch (action.type) {
-    case "STORIES_FETCH_INIT":
+    case 'STORIES_FETCH_INIT':
       return {
         ...state,
         isLoading: true,
-        isError: false,
-      };
-    case "STORIES_FETCH_SUCCESS":
+        isError: false
+      }
+    case 'STORIES_FETCH_SUCCESS':
       return {
         ...state,
         isLoading: false,
         isError: false,
-        data: action.payload,
-      };
-    case "STORIES_FETCH_FAILURE":
+        data: action.payload
+      }
+    case 'STORIES_FETCH_FAILURE':
       return {
         ...state,
         isLoading: false,
-        isError: true,
-      };
-    case "REMOVE_STORY":
+        isError: true
+      }
+    case 'REMOVE_STORY':
       return {
         ...state,
         data: state.data.filter(
-          (story) => action.payload.objectID !== story.objectID
-        ),
-      };
+          story => action.payload.objectID !== story.objectID
+        )
+      }
     default:
-      throw new Error();
+      throw new Error()
   }
-};
+}
 
 const App = () => {
-  console.log("app renders");
-  const API_ENDPOINT = "https://hn.algolia.com/api/v1/search?query=";
+  console.log('app renders')
+  const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query='
   const [stories, dispatchStories] = React.useReducer(storiesReducer, {
     data: [],
     isLoading: false,
-    isError: false,
-  });
+    isError: false
+  })
 
-  const [searchTerm, setSearchTerm] = useSemiPersistentState("", "React");
+  const [searchTerm, setSearchTerm] = useSemiPersistentState('', 'React')
+  const [url, setUrl] = React.useState(`${API_ENDPOINT}${searchTerm}`)
+  const handleSearchSubmit = event => {
+    event.preventDefault()
+    setUrl(`${API_ENDPOINT}${searchTerm}`)
+  }
+
+  const handleFetchStories = useCallback(async () => {
+    dispatchStories({ type: 'STORIES_FETCH_INIT' })
+    try {
+      const result = await axios.get(url)
+      dispatchStories({
+        type: 'STORIES_FETCH_SUCCESS',
+        payload: result.data.hits
+      })
+    } catch {
+      dispatchStories({ type: 'STORIES_FETCH_FAILURE' })
+    }
+  }, [url])
 
   React.useEffect(() => {
-    if (!searchTerm) return;
-    dispatchStories({ type: "STORIES_FETCH_INIT" });
-    fetch(`${API_ENDPOINT}${searchTerm}`).then((response) => response.json()).then((result) => {
-      dispatchStories({
-        type: "STORIES_FETCH_SUCCESS",
-        payload: result.hits,
-      });
-    }).catch(() => dispatchStories({ type: "STORIES_FETCH_FAILURE" }));
-  }, [searchTerm]);
+    handleFetchStories()
+  }, [handleFetchStories])
 
-  const handleChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+  const handleSearchInput = event => {
+    setSearchTerm(event.target.value)
+  }
 
-  const handleRemoveStory = (item) => {
+  const handleRemoveStory = item => {
     dispatchStories({
-      type: "REMOVE_STORY",
-      payload: item,
-    });
-  };
-
+      type: 'REMOVE_STORY',
+      payload: item
+    })
+  }
   return (
     <div>
       <h1>My Hacker Stories</h1>
-      <InputWithLabel
-        id="search"
-        label="Search"
-        value={searchTerm}
-        isFocused={true}
-        onChange={handleChange}
-      >
-        <strong>Search : </strong>
-      </InputWithLabel>
+      <SearchForm
+        searchTerm={searchTerm}
+        onSearchInput={handleSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+      />
       <hr />
       {stories.isError && <p>Something went wrong ...</p>}
       {stories.isLoading ? (
@@ -119,18 +101,18 @@ const App = () => {
         <List list={stories.data} onRemoveItem={handleRemoveStory} />
       )}
     </div>
-  );
-};
+  )
+}
 const List = ({ list, onRemoveItem }) => {
-  console.log("list renders", list);
+  console.log('list renders', list)
   return (
     <ul>
-      {list.map((item) => (
+      {list.map(item => (
         <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
       ))}
     </ul>
-  );
-};
+  )
+}
 
 const Item = ({ item, onRemoveItem }) => (
   <li>
@@ -144,22 +126,22 @@ const Item = ({ item, onRemoveItem }) => (
       <button onClick={() => onRemoveItem(item)}>Dismiss</button>
     </span>
   </li>
-);
+)
 
 const InputWithLabel = ({
   id,
   value,
-  onChange,
+  onInputChange,
   isFocused,
-  type = "text",
-  children,
+  type = 'text',
+  children
 }) => {
-  const inputRef = useRef();
+  const inputRef = useRef()
   useEffect(() => {
     if (isFocused && inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
     }
-  }, [isFocused]);
+  }, [isFocused])
   return (
     <>
       <label htmlFor={id}>{children}</label>
@@ -167,11 +149,26 @@ const InputWithLabel = ({
         id={id}
         type={type}
         value={value}
-        onChange={onChange}
+        onChange={onInputChange}
         ref={inputRef}
       />
     </>
-  );
-};
+  )
+}
 
-export default App;
+const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => (
+  <form onSubmit={onSearchSubmit}>
+    <InputWithLabel
+      id="search"
+      value={searchTerm}
+      isFocused
+      onInputChange={onSearchInput}
+    >
+      <strong>Search:</strong>
+    </InputWithLabel>
+    <button type="submit" disabled={!searchTerm}>
+      Submit
+    </button>
+  </form>
+)
+export default App
